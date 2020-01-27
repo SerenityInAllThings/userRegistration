@@ -1,0 +1,4 @@
+
+redis:
+    pass: ${redis.pass}
+    address: redis.default.svc.cluster.local

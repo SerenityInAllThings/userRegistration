@@ -1,0 +1,78 @@
+# App
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-registration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-registration
+  template:
+    metadata:
+      labels:
+        app: user-registration
+    spec:
+      containers:
+      - name: api
+        image: serenityinallthings/userregistration:0.0.7
+        ports:
+        - containerPort: 8080
+        env:
+          - name: REDIS_PASS
+            valueFrom:
+              secretKeyRef:
+                name: env-secrets
+                key: REDIS_PASS
+---
+# Persistence service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  ports:
+    - port: 6379
+      name: redis
+  clusterIP: None
+  selector:
+    app: redis
+---
+# Persistence statefuSet
+apiVersion: apps/v1beta2
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis    # has to match .spec.template.metadata.labels
+  serviceName: redis
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis  # has to match .spec.selector.matchLabels
+    spec:
+      containers:
+        - name: redis
+          image: redis:6.0-rc1-alpine
+          imagePullPolicy: Always
+          args: ["--requirepass", "$(REDIS_PASS)", "--appendonly", "yes", "--save", "900", "1", "--save", "30", "1"]
+          ports:
+            - containerPort: 6379
+              name: redis
+          env:
+          - name: REDIS_PASS
+            valueFrom:
+              secretKeyRef:
+                name: env-secrets
+                key: REDIS_PASS
+          volumeMounts:
+            - name: redis-volume
+              mountPath: /data
+      volumes:
+        - name: redis-volume
+          gcePersistentDisk:
+            pdName: redis-disk
+            fsType: ext4

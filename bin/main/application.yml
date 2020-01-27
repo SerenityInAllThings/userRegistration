@@ -1,0 +1,3 @@
+redis:
+    password: minhaSenhaLocal
+    address: localhost:6379

@@ -3,59 +3,70 @@ package com.petersonv.eglucometer.userRegistrationService.entities;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.UUID;
+
+import javax.validation.ConstraintViolationException;
 
 import com.petersonv.eglucometer.userRegistrationService.valueObjects.RandomProvider;
+import com.petersonv.eglucometer.userRegistrationService.valueObjects.requests.CreateUserRequest;
 
-import org.springframework.util.StringUtils;
+import org.msgpack.annotation.Message;
 
+@Message
 public class User {
     // Contants
-    private static final int MinimumPasswordLength = 4;
-    private static final int MaximumPasswordLength = 20;
+    public static final int MinPasswordLength = 4;
+    public static final int MaxPasswordLength = 20;
+    public static final int MinNameLength = 2;
+    public static final int MaxNameLength = 64;
     private static final int PasswordSaltLength = 32;
 
     // Properties
+    private String id;
     private String email;
+    private String firstname;
+    private String lastName;
+    private LocalDate birthdate;
     private byte[] pwHash;
     private byte[] pwSalt;
 
-    // Constructors
-    public User(String email, String password) {
-        if (!User.isEmailValid(email))
-            throw new IllegalArgumentException("Invalid email provided.");
+    public User(CreateUserRequest request) {
+        if (request == null)
+            throw new IllegalArgumentException("Create user request cannot be null.");
 
-        if (!User.isPasswordValid(password))
-            throw new IllegalArgumentException(getInvalidPasswordMessage());
+        final var constraintViolations = request.getConstraintViolations();
+        if (constraintViolations.size() != 0)
+            throw new ConstraintViolationException(constraintViolations);
 
-        this.email = email;
+        this.id = generateId();
+        this.email = request.email;
+        this.firstname = request.firstName;
+        this.lastName = request.lastName;
         this.pwSalt = generatePasswordSalt();
-        this.pwHash = getPasswordHash(password, this.pwSalt);
+        this.pwHash = getPasswordHash(request.password, this.pwSalt);
     }
 
     public String getEmail() {
         return this.email;
     }
 
+    public String getFirstName() {
+        return this.firstname;
+    }
+
+    public String getLastName() {
+        return this.lastName;
+    }
+
+    public LocalDate getBirthDate() {
+        return this.birthdate;
+    }
+
     public boolean isPasswordCorrect(String password) {
         final var hashed = getPasswordHash(password, this.pwSalt);
         return Arrays.equals(hashed, pwHash);
-    }
-
-    private static boolean isEmailValid(String email) {
-        return !StringUtils.isEmpty(email)
-            && email.contains("@");
-    }
-
-    private static boolean isPasswordValid(String password) {
-        return !StringUtils.isEmpty(password)
-            && password.length() >= MinimumPasswordLength
-            && password.length() <= MaximumPasswordLength;
-    }
-
-    private static String getInvalidPasswordMessage() {
-        final String template = "The password must have between %d and %d characters.";
-        return String.format(template, MinimumPasswordLength, MaximumPasswordLength);
     }
 
     private static byte[] generatePasswordSalt() {
@@ -72,5 +83,9 @@ public class User {
         catch (NoSuchAlgorithmException ex) {
             throw new RuntimeException("Algorithm not found", ex);
         }
+    }
+
+    private static String generateId() {
+        return UUID.randomUUID().toString();
     }
 }
