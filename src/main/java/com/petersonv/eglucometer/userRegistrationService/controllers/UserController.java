@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping(UserController.userEndointRelativeRoute)
+@RequestMapping(UserController.userEndpointRelativeRoute)
 public class UserController {
-    public static final String userEndointRelativeRoute = "/User";
+    public static final String userEndpointRelativeRoute = "/User";
 
     @Autowired
     public UserRepository userRepo;
@@ -27,6 +27,8 @@ public class UserController {
     public Mono<CreateUserResponse> CreateUser(@Valid @RequestBody CreateUserRequest request) {
         final var user = new User(request);
         return userRepo.insert(user)
-            .map((ignore) -> new CreateUserResponse(true, user.getEmail()));
+            .map(ignore -> new CreateUserResponse(true, user.getEmail()))
+            .onErrorReturn(new CreateUserResponse(false, user.getEmail()));
+
     }
 }

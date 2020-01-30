@@ -1,17 +1,31 @@
-# App
+#Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+spec:
+  selector:
+    app: user-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer
+---
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: user-registration
+  name: user-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: user-registration
+      app: user-service
   template:
     metadata:
       labels:
-        app: user-registration
+        app: user-service
     spec:
       containers:
       - name: api
